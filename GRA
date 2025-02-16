@@ -1,0 +1,81 @@
+% Graphical Method for Linear Programming (Refactored)
+format short;
+clear; clc;
+
+% Define constraints
+a = [1 2; 1 1; 1 -2];   % Coefficients of constraints
+b = [10; 6; 1];         % Right-hand side values
+c = [5 3];              % Objective function coefficients
+
+x1 = 0 : max(b); % Range for X1
+x21 = (b(1) - a(1,1)*x1) / a(1,2);
+x22 = (b(2) - a(2,1)*x1) / a(2,2);
+x23 = (b(3) - a(3,1)*x1) / a(3,2);
+
+% Ensuring only non-negative values
+x21 = max(0, x21);
+x22 = max(0, x22);
+x23 = max(0, x23);
+
+% Plot constraints
+figure;
+hold on;
+plot(x1, x21, 'r', 'LineWidth', 2);
+plot(x1, x22, 'b', 'LineWidth', 2);
+plot(x1, x23, 'g', 'LineWidth', 2);
+xlabel('X1'); ylabel('X2');
+title('Feasible Region and Optimal Solution');
+legend({'Constraint 1', 'Constraint 2', 'Constraint 3'}, 'Location', 'Best');
+grid on;
+
+% Finding corner points
+cx1 = find(x1 == 0);
+c1 = find(x21 == 0); line1 = [x1([c1, cx1]); x21([c1, cx1])]';
+c2 = find(x22 == 0); line2 = [x1([c2, cx1]); x22([c2, cx1])]';
+c3 = find(x23 == 0); line3 = [x1([c3, cx1]); x23([c3, cx1])]';
+
+cornpt = unique([line1; line2; line3], 'rows');
+
+% Finding intersection points
+pt = [0, 0]; % Initialize with origin
+for i = 1 : size(a,1)
+    for j = i+1 : size(a,1)
+        A1 = a([i j], :);
+        B1 = b([i j], :);
+        if det(A1) ~= 0  % Ensure system is solvable
+            X = A1 \ B1; % Solve using matrix division
+            pt = [pt; X'];
+        end
+    end
+end
+
+% Unique feasible points
+allpts = unique([pt; cornpt], 'rows');
+valid_pts = allpts;
+
+% Check feasibility
+for i = 1 : size(allpts,1)
+    check = a * allpts(i,:)' - b;
+    if any(check > 0)  % If any constraint is violated, remove the point
+        valid_pts(i, :) = NaN;
+    end
+end
+valid_pts = valid_pts(~any(isnan(valid_pts),2), :);
+
+% Calculate objective function values
+values = valid_pts * c';
+[obj, index] = max(values);
+X1_opt = valid_pts(index,1);
+X2_opt = valid_pts(index,2);
+
+% Plot feasible points
+scatter(valid_pts(:,1), valid_pts(:,2), 100, 'k', 'filled');
+
+% Mark optimal point
+scatter(X1_opt, X2_opt, 150, 'r', 'filled');
+text(X1_opt, X2_opt, sprintf(' Optimal (%.2f, %.2f)', X1_opt, X2_opt), 'FontSize', 12);
+
+hold off;
+
+% Display result
+fprintf('Optimal solution: Z = %.2f at (X1, X2) = (%.2f, %.2f)\n', obj, X1_opt, X2_opt);
